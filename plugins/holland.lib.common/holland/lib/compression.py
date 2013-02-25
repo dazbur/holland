@@ -75,7 +75,7 @@ class CompressionOutput(object):
     Class to create a compressed file descriptor for writing.  Functions like
     a standard file descriptor such as from open().
     """
-    def __init__(self, path, mode, cmd, level, inline):
+    def __init__(self, path, mode, cmd, level, processes, inline):
         self.cmd = cmd
         self.level = level
         self.inline = inline
@@ -87,6 +87,8 @@ class CompressionOutput(object):
             args = [cmd]
             if level:
                 args += ['-%d' % level]
+            if processes:
+                args += ['-p%d' % processes]
             self.pid = subprocess.Popen(args, 
                                         stdin=subprocess.PIPE, 
                                         stdout=self.fileobj.fileno(), 
@@ -160,7 +162,7 @@ def stream_info(path, method=None, level=None):
 
     return cmd, path
 
-def open_stream(path, mode, method=None, level=None, inline=True):
+def open_stream(path, mode, method=None, level=None, processes=None, inline=True):
     """
     Opens a compressed data stream, and returns a file descriptor type object
     that acts much like os.open() does.  If no method is passed, or the 
@@ -171,6 +173,7 @@ def open_stream(path, mode, method=None, level=None, inline=True):
     mode    -- File access mode (i.e. 'r' or 'w')
     method  -- Compression method (i.e. 'gzip', 'bzip2', 'pbzip2', 'lzop')
     level   -- Compression level
+    processes -- Number of parallel processes for pigz
     inline  -- Boolean whether to compress inline, or after the file is written.
     """
     if not method or method == 'none' or level == 0:
@@ -183,7 +186,11 @@ def open_stream(path, mode, method=None, level=None, inline=True):
         if mode == 'r':
             return CompressionInput(path, mode, cmd=cmd)
         elif mode == 'w':
-            return CompressionOutput(path, mode, cmd=cmd, level=level, 
-                                     inline=inline)
+            if method == 'pigz':
+               return CompressionOutput(path, mode, cmd=cmd, level=level, 
+                                        processes=processes, inline=inline)
+            else:
+               return CompressionOutput(path, mode, cmd=cmd, level=level,
+                                       inline=inline)
         else:
             raise IOError("invalid mode: %s" % mode)

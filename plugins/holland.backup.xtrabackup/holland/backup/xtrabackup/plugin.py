@@ -34,6 +34,7 @@ pre-command         = string(default=None)
 method              = option('none', 'gzip', 'pigz', 'bzip2', 'pbzip2', 'lzma', 'lzop', default=gzip)
 inline              = boolean(default=yes)
 level               = integer(min=0, max=9, default=1)
+processes           = integer(min=1, default=None)
 
 [mysql:client]
 defaults-extra-file = force_list(default=list('~/.my.cnf'))
@@ -102,7 +103,8 @@ class XtrabackupPlugin(object):
                 zconfig = self.config['compression']
                 return open_stream(archive_path, 'w',
                                         method=zconfig['method'],
-                                        level=zconfig['level'])
+                                        level=zconfig['level'],
+                                        processes=zconfig['processes'])
             elif 'xbstream' in config['stream']:
                 archive_path = join(backup_directory, 'backup.xb')
                 return open(archive_path, 'w')
@@ -173,4 +175,3 @@ class XtrabackupPlugin(object):
             stderr.close()
         if xb_cfg['apply-logs']:
             util.apply_xtrabackup_logfile(xb_cfg, args[-1])
-
